@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "com.homeshopbuyer",
+    "name": "e-HomeShop",
     "slug": "homeShopBuyer",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
@@ -26,6 +26,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fc97f3c1-b234-4131-b4c1-d53760341cf4"
+      }
     }
   }
 }

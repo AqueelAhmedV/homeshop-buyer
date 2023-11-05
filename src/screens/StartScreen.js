@@ -1,14 +1,41 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
 import { Button } from 'react-native-paper';
 import TextInput  from '../components/TextInput'
 import { pinCodeValidator } from '../helpers/pinCodeValidator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { theme } from '../core/theme';
 
 const StartScreen = ({ navigation }) => {
   const [pinCode, setPinCode] = useState({
-    value: "123456",
+    value: "",
     error: ""
   });
+  const [showInput, setShowInput] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    AsyncStorage.getItem("pinCode")
+    .then((val) => {
+      if (!!!val) {
+        setShowInput(true)
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [{name: "Dashboard", params: {
+            pinCode: val
+          }}],
+        })
+      }
+      setTimeout(() => {
+        setLoading(false)
+      }, 500)
+    }).catch((err) => {
+      console.log(err)
+      setLoading(false)
+    })
+  }, [navigation])
 
 
   const handleProceed = async () => {
@@ -19,9 +46,13 @@ const StartScreen = ({ navigation }) => {
       })
       return;
     } else {
+      AsyncStorage.setItem('pinCode', pinCode.value)
       setPinCode({...pinCode, error: ""})
-      navigation.navigate("Dashboard", {
-        pinCode: pinCode.value
+      navigation.reset({
+        index: 0,
+        routes: [{name: "Dashboard", params: {
+          pinCode: pinCode.value
+        }}],
       })
     }
   };
@@ -29,8 +60,19 @@ const StartScreen = ({ navigation }) => {
   
 
   return (
-    <View style={styles.container}>
-      <View style={styles.inputContainer}>
+    !loading ? <View style={{
+      ...styles.container,
+      justifyContent: showInput?"flex-start":'center'
+    }}>
+      <View style={{ alignItems: "center", marginTop: 90 }}>
+        <Image source={require("../../assets/buyer_login.png")} style={{
+          width: 150,
+          height: 150,
+          // objectFit: "contain",
+          marginBottom: 40
+        }}/>
+      </View>
+      {showInput && <View style={styles.inputContainer}>
         <TextInput
           label="Enter your PIN code"
           value={pinCode.value}
@@ -39,26 +81,35 @@ const StartScreen = ({ navigation }) => {
           errorText={pinCode.error}
           keyboardType='numeric'
         />
-      </View>
+      
       <Button style={{
         marginTop: "20px"
 
       }} mode="contained" onPress={handleProceed}>
         {"Proceed"}
       </Button>
-    </View>
+      </View>}
+    </View>:(<View style={styles.loadingScreen}>
+
+    </View>)
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    
+    gap: 20,
     padding: 16,
-    justifyContent: 'center',
+    backgroundColor: "white"
   },
   inputContainer: {
-    marginBottom: 16
+    marginBottom: 16,
+    paddingHorizontal: 50
+  },
+  loadingScreen: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: theme.colors.primary
   }
 });
 

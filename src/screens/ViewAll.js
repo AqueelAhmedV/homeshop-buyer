@@ -4,19 +4,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Image,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons as Icon, AntDesign } from '@expo/vector-icons'
-import { TouchableWithoutFeedback } from 'react-native';
 import { theme } from '../core/theme';
-import { StatusBar } from 'react-native';
 import axios from 'axios';
 import { BASE_URL } from '../constants/endpoints';
-import { categories } from '../constants/categories';
 import { ActivityIndicator } from 'react-native';
-import Header from '../components/Header';
+import { windowHeight, windowWidth } from '../constants/dimesions';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const HomeScreen = ({ navigation, route }) => {
   const [searchVisible, setSearchVisible] = useState(false);
@@ -24,6 +22,112 @@ const HomeScreen = ({ navigation, route }) => {
   const { pinCode, category } = route.params // Replace with your actual PIN code
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: 'white',
+      // paddingHorizontal: 16,
+    },
+    navbar: {
+      position: "sticky",
+      top: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.colors.primary,
+      height: windowHeight*0.08, // You can adjust the height as needed
+      padding: 0,
+      margin: 0,
+      width: "100%",
+    },
+    searchBar: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 0.025*windowHeight,
+      marginRight: "3%",
+      height: "50%"
+    },
+    searchInput: {
+      backgroundColor: "#fff",
+      flex: 0.99,
+      borderColor: 'gray',
+      borderWidth: 0,
+      borderRadius: 5,
+      fontSize: 20,
+      marginRight: 10,
+      paddingLeft: 5
+    },
+    pinCodeText: {
+      fontSize: 16,
+      paddingHorizontal: 20,
+      marginTop: 10
+    },
+    categoryTitle: {
+      fontSize: 20,
+      marginTop: 10,
+      flex: 1
+    },
+    categoryTitleContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center"
+    },
+    categoryContainer: {
+      paddingHorizontal: 0,
+    },  
+    productsContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginTop: 10,
+    },
+    productCard: {
+      width: windowWidth*0.5,
+      height: 240,
+      borderRightWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: 'lightgray',
+      padding: 10,
+    },
+    productImage: {
+      width: '100%',
+      height: 150,
+      objectFit: "contain"
+    },
+    productInfo: {
+      marginTop: 10,
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    productPrice: {
+      fontSize: 14,
+      marginTop: 5,
+    },
+    mrp: {
+      textDecorationLine: 'line-through',
+      marginRight: 5,
+    },
+    viewAllLink: {
+      alignSelf: 'flex-end',
+      marginTop: 10,
+      fontSize: 16,
+      color: 'blue',
+    },
+    noProducts: {
+      justifyContent: "center",
+      marginTop: 70,
+      width: "100%",
+    },
+    noProductsText: {
+     fontSize: 16,
+     fontWeight: "bold",
+     textAlign: "center"
+    },
+    loading: {
+      marginTop: 70
+    }
+  });
 
   function fetchProducts(searchStr="") {
     setLoading(true)
@@ -46,10 +150,6 @@ const HomeScreen = ({ navigation, route }) => {
   }, [])
 
 
-  const handleDismissSearch = () => {
-    setSearchVisible(false)
-  }
-
   const handleSearch = () => {
     fetchProducts(searchText)
   }
@@ -59,7 +159,6 @@ const HomeScreen = ({ navigation, route }) => {
     fetchProducts("")
   }
 
-  StatusBar.setBackgroundColor(theme.colors.primary)
   return (
     // <TouchableWithoutFeedback onPress={handleDismissSearch}>
       <View style={styles.container}>
@@ -76,10 +175,12 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
             {searchVisible && (
               <TextInput
+                autoFocus
                 style={styles.searchInput}
                 placeholder="Search..."
                 value={searchText}
                 onChangeText={(text) => setSearchText(text)}
+                onSubmitEditing={handleSearch}
               />)
             }
             {!searchVisible && 
@@ -92,7 +193,7 @@ const HomeScreen = ({ navigation, route }) => {
                     fontSize: 24,
                     color: "#fff",
                     paddingLeft: 10
-                }}>Groceries</Text>
+                }}>{category}</Text>
             </View>}
             <TouchableOpacity style={{
               backgroundColor: searchVisible?"white":"transparent",
@@ -105,7 +206,9 @@ const HomeScreen = ({ navigation, route }) => {
           </View>
       </View>
     
-      <ScrollView style={styles.container}>
+      <KeyboardAwareScrollView style={styles.container} refreshControl={
+        (!loading && <RefreshControl colors={[theme.colors.primary]} refreshing={loading} onRefresh={fetchProducts} />)
+      }>
 
       {/* Categories and Products */}
       <View style={styles.categoryContainer}>
@@ -116,22 +219,25 @@ const HomeScreen = ({ navigation, route }) => {
       
       <View key={category}>
           <View style={styles.productsContainer}>
-            {products.map((product) => (
+            {!loading && products.map((product) => (
               <TouchableOpacity key={product.ProductId} onPress={() => {
-                navigation.navigate("ViewProduct", { product })
+                navigation.navigate("ViewProduct", { product, pinCode })
               }}>
               <View style={styles.productCard} key={product.ProductId}>
                 <Image source={{ uri: `${BASE_URL}/api/product/view-image/${product.ImageId}` }} style={styles.productImage} />
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.ProductName}</Text>
+                  <Text  numberOfLines={2} ellipsizeMode='tail' style={styles.productName}>{product.ProductName}</Text>
                   <Text style={styles.productPrice}>
-                    {product.OfferPrice ? (
+                  {product.OfferPrice ? (
                       <>
-                        {product.OfferPrice}
-                        <Text style={styles.mrp}>{product.MRP}</Text>
+                        &#8377;&nbsp;{product.OfferPrice}&nbsp;
+                        <Text style={styles.mrp}>&#8377;&nbsp;{product.MRP}</Text>
                       </>
                     ) : (
-                      product.MRP
+                      <>
+                      &#8377;&nbsp;
+                      {product.MRP}
+                      </>
                     )}
                   </Text>
                 </View>
@@ -142,117 +248,12 @@ const HomeScreen = ({ navigation, route }) => {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
     </View>
     // </TouchableWithoutFeedback>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-    // paddingHorizontal: 16,
-  },
-  navbar: {
-    position: "sticky",
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.colors.primary,
-    height: 60, // You can adjust the height as needed
-    padding: 0,
-    margin: 0,
-    width: "100%",
-  },
-  searchBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 20,
-    marginBottom: 10,
-    paddingRight: 20,
-    paddingLeft:0,
-    height: 32
-  },
-  searchInput: {
-    backgroundColor: "#fff",
-    flex: 1,
-    borderColor: 'gray',
-    borderWidth: 0,
-    borderRadius: 5,
-    fontSize: 20,
-    marginRight: 10,
-    paddingLeft: 5
-  },
-  pinCodeText: {
-    fontSize: 16,
-    paddingHorizontal: 20,
-    marginTop: 10
-  },
-  categoryTitle: {
-    fontSize: 20,
-    marginTop: 10,
-  },
-  categoryTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  categoryContainer: {
-    paddingHorizontal: 10,
-  },  
-  productsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 10,
-  },
-  productCard: {
-    width: 185,
-    height: 240,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'lightgray',
-    padding: 10,
-  },
-  productImage: {
-    width: '100%',
-    height: 150,
-    objectFit: "contain"
-  },
-  productInfo: {
-    marginTop: 10,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  productPrice: {
-    fontSize: 14,
-    marginTop: 5,
-  },
-  mrp: {
-    textDecorationLine: 'line-through',
-    marginRight: 5,
-  },
-  viewAllLink: {
-    alignSelf: 'flex-end',
-    marginTop: 10,
-    fontSize: 16,
-    color: 'blue',
-  },
-  noProducts: {
-    justifyContent: "center",
-    marginTop: 70,
-    width: "100%",
-  },
-  noProductsText: {
-   fontSize: 16,
-   fontWeight: "bold",
-   textAlign: "center"
-  },
-  loading: {
-    marginTop: 70
-  }
-});
+
 
 export default HomeScreen;

@@ -1,5 +1,8 @@
 exports.categories = [
-    "Groceries",
+    "Spices and Masalas",
     "Personal Care",
-    "Stationary"
+    "Soap and Toiletries",
+    "Groceries",
+    "Stationary",
+    "Electronics"
 ]
